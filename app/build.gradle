@@ -39,17 +39,12 @@ testing {
     }
 }
 
-application {
-    // Define the main class for the application.
-    mainClass = 'psxtaxi.App'
-}
-
 task fatJar(type: Jar, dependsOn: configurations.runtimeClasspath) {
     classifier 'jar-with-dependencies'
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.SF'
     manifest {
-        attributes 'Main-Class': "${mainClassName}"
+        attributes 'Main-Class': "psxtaxi.App"
     }
     with jar
 }
