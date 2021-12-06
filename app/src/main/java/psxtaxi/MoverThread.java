@@ -17,6 +17,7 @@ public class MoverThread extends Thread {
     private LatLong currentLatLong;
     private double currentAircraftHeading = 0.0; // in radians
     private double currentTas = 0.0;
+    private double tillerInput = 0;
 
     public MoverThread() {
         super();
@@ -40,18 +41,19 @@ public class MoverThread extends Thread {
             while (true) {
                 if ((received = in.readLine()) != null) {
                     String[] keyValue = received.split("=");
-                    if (keyValue[0].startsWith("Qs121")) {
+                    if (keyValue[0].startsWith("Qs121")) { // heading,tas,lat,long
                         String[] values = keyValue[1].split(";");
                         try {
                             this.currentLatLong = new LatLong(Double.parseDouble(values[5]) * RAD2DEG, Double.parseDouble(values[6]) * RAD2DEG);
                             this.model.mapViewPosition.animateTo(this.currentLatLong);
-                            //this.model.mapViewPosition.setZoomLevel((byte) 18, false);
                             App.currentLatLong = this.currentLatLong;
                             this.currentAircraftHeading = Double.parseDouble(values[2]);
                             this.currentTas = Double.parseDouble(values[4]);
                         } catch (Exception e) {
                             System.err.println("Exception in render:" + e.getMessage());
                         }
+                    } else if (keyValue[0].startsWith("Qh426")) { // tiller input
+                        this.tillerInput = Double.parseDouble(keyValue[1]);
                     }
                 }
             }
@@ -66,5 +68,9 @@ public class MoverThread extends Thread {
 
     public double getAircraftTas() {
         return this.currentTas;
+    }
+
+    public double getTillerInput() {
+        return tillerInput;
     }
 }
