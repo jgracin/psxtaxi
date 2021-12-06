@@ -31,8 +31,6 @@ public class App {
     private static final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
     private static final boolean SHOW_RASTER_MAP = true;
 
-    private static final String MESSAGE = "Are you sure you want to exit the application?";
-    private static final String TITLE = "Confirm close";
     public static LatLong currentLatLong;
     private static final MoverThread moverThread = new MoverThread();
 
