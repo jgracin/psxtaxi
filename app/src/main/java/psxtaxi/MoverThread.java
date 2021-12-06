@@ -14,7 +14,6 @@ public class MoverThread extends Thread {
     private BufferedReader in = null;
     private PrintWriter ou = null;
     public static final double RAD2DEG = 57.2958;
-    private LatLong currentLatLong;
     private double currentAircraftHeading = 0.0; // in radians
     private double currentTas = 0.0;
     private double tillerInput = 0;
@@ -40,25 +39,52 @@ public class MoverThread extends Thread {
             String received;
             while (true) {
                 if ((received = in.readLine()) != null) {
-                    String[] keyValue = received.split("=");
-                    if (keyValue[0].startsWith("Qs121")) { // heading,tas,lat,long
-                        String[] values = keyValue[1].split(";");
+                    Message message = parseMessage(received);
+                    if (message.qcode.equals("Qs121")) { // heading,tas,lat,long
                         try {
-                            this.currentLatLong = new LatLong(Double.parseDouble(values[5]) * RAD2DEG, Double.parseDouble(values[6]) * RAD2DEG);
-                            this.model.mapViewPosition.animateTo(this.currentLatLong);
-                            App.currentLatLong = this.currentLatLong;
-                            this.currentAircraftHeading = Double.parseDouble(values[2]);
-                            this.currentTas = Double.parseDouble(values[4]);
+                            LatLong newLatLong =
+                                    new LatLong(
+                                            Double.parseDouble(message.values[5]) * RAD2DEG,
+                                            Double.parseDouble(message.values[6]) * RAD2DEG);
+
+                            this.model.mapViewPosition.animateTo(newLatLong);
+                            this.currentAircraftHeading = Double.parseDouble(message.values[2]);
+                            this.currentTas = Double.parseDouble(message.values[4]);
                         } catch (Exception e) {
                             System.err.println("Exception in render:" + e.getMessage());
                         }
-                    } else if (keyValue[0].startsWith("Qh426")) { // tiller input
-                        this.tillerInput = Double.parseDouble(keyValue[1]);
+                    } else if (message.qcode.equals("Qh426")) { // tiller input
+                        this.tillerInput = Double.parseDouble(message.values[0]);
                     }
                 }
             }
         } catch (Exception e) {
             System.err.println("Exception in MoverThread:" + e.getMessage());
+        }
+    }
+
+    private static class Message {
+        String qcode;
+        String[] values;
+
+        public Message(String qcode, String[] values) {
+            this.qcode = qcode;
+            this.values = values;
+        }
+    }
+
+    private static Message parseMessage(String psxMessage) {
+        if (psxMessage == null) {
+            return null;
+        }
+        String[] m = psxMessage.split("=");
+        if (m.length == 0 || m[0] == null || m[0].isBlank()) {
+            return new Message("INVALID", new String[]{});
+        }
+        if (m.length == 2) {
+            return new Message(m[0], m[1].split(";"));
+        } else {
+            return new Message(m[0], new String[]{});
         }
     }
 
@@ -71,6 +97,6 @@ public class MoverThread extends Thread {
     }
 
     public double getTillerInput() {
-        return tillerInput;
+        return this.tillerInput;
     }
 }

@@ -31,7 +31,6 @@ public class App {
     private static final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
     private static final boolean SHOW_RASTER_MAP = true;
 
-    public static LatLong currentLatLong;
     private static final MoverThread moverThread = new MoverThread();
 
     public static void main(String[] args) {
