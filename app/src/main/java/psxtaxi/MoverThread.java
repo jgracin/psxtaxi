@@ -1,15 +1,17 @@
 package psxtaxi;
 
 import org.mapsforge.core.model.LatLong;
-import org.mapsforge.map.model.Model;
+import org.mapsforge.map.awt.view.MapView;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import static java.lang.Double.parseDouble;
+
 public class MoverThread extends Thread {
-    private Model model;
+    private MapView mapView;
     private Socket socket = null;
     private BufferedReader in = null;
     private PrintWriter ou = null;
@@ -17,6 +19,7 @@ public class MoverThread extends Thread {
     private double currentAircraftHeading = 0.0; // in radians
     private double currentTas = 0.0;
     private double tillerInput = 0;
+    private LatLong aircraftPosition;
 
     public MoverThread() {
         super();
@@ -30,37 +33,61 @@ public class MoverThread extends Thread {
         }
     }
 
-    public void setModel(Model model) {
-        this.model = model;
+    public void setModel(MapView mapView) {
+        this.mapView = mapView;
     }
 
     public void run() {
-        try {
-            String received;
-            while (true) {
+        String received;
+        Exception lastException = null;
+        while (true) {
+            try {
                 if ((received = in.readLine()) != null) {
                     Message message = parseMessage(received);
                     if (message.qcode.equals("Qs121")) { // heading,tas,lat,long
-                        try {
-                            LatLong newLatLong =
-                                    new LatLong(
-                                            Double.parseDouble(message.values[5]) * RAD2DEG,
-                                            Double.parseDouble(message.values[6]) * RAD2DEG);
-
-                            this.model.mapViewPosition.animateTo(newLatLong);
-                            this.currentAircraftHeading = Double.parseDouble(message.values[2]);
-                            this.currentTas = Double.parseDouble(message.values[4]);
-                        } catch (Exception e) {
-                            System.err.println("Exception in render:" + e.getMessage());
+                        this.aircraftPosition = new LatLong(
+                                parseDouble(message.values[5]) * RAD2DEG,
+                                parseDouble(message.values[6]) * RAD2DEG);
+                        this.currentAircraftHeading = parseDouble(message.values[2]);
+                        this.currentTas = parseDouble(message.values[4]);
+                        if (!mapView.getBoundingBox().contains(this.aircraftPosition) && this.currentTas < 60*1000) {
+                            mapView.getModel().mapViewPosition.animateTo(this.aircraftPosition);
                         }
+                        mapView.getLayerManager().redrawLayers();
                     } else if (message.qcode.equals("Qh426")) { // tiller input
-                        this.tillerInput = Double.parseDouble(message.values[0]);
+                        this.tillerInput = parseDouble(message.values[0]);
                     }
                 }
+            } catch (Exception e) {
+                if (lastException == null) {
+                    lastException = e;
+                    e.printStackTrace(System.err);
+                } else if (!lastException.getMessage().equals(e.getMessage())) {
+                    e.printStackTrace(System.err);
+                }
             }
-        } catch (Exception e) {
-            System.err.println("Exception in MoverThread:" + e.getMessage());
         }
+    }
+
+    public void setMapView(MapView mapView) {
+        this.mapView = mapView;
+    }
+
+
+    public double getAircraftHeading() {
+        return this.currentAircraftHeading;
+    }
+
+    public double getAircraftTas() {
+        return this.currentTas;
+    }
+
+    public double getTillerInput() {
+        return this.tillerInput;
+    }
+
+    public LatLong getAircraftPosition() {
+        return this.aircraftPosition;
     }
 
     private static class Message {
@@ -74,13 +101,7 @@ public class MoverThread extends Thread {
     }
 
     private static Message parseMessage(String psxMessage) {
-        if (psxMessage == null) {
-            return null;
-        }
         String[] m = psxMessage.split("=");
-        if (m.length == 0 || m[0] == null || m[0].isBlank()) {
-            return new Message("INVALID", new String[]{});
-        }
         if (m.length == 2) {
             return new Message(m[0], m[1].split(";"));
         } else {
@@ -88,15 +109,4 @@ public class MoverThread extends Thread {
         }
     }
 
-    public double getAircraftHeading() {
-        return this.currentAircraftHeading;
-    }
-
-    public double getAircraftTas() {
-        return this.currentTas;
-    }
-
-    public double getTillerInput() {
-        return this.tillerInput;
-    }
 }

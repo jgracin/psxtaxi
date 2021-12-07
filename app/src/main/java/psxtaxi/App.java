@@ -5,7 +5,6 @@ package psxtaxi;
 
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.model.BoundingBox;
-import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.util.LatLongUtils;
 import org.mapsforge.core.util.Parameters;
 import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
@@ -29,7 +28,6 @@ import java.util.prefs.Preferences;
 
 public class App {
     private static final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
-    private static final boolean SHOW_RASTER_MAP = true;
 
     private static final MoverThread moverThread = new MoverThread();
 
@@ -62,7 +60,7 @@ public class App {
             public void windowOpened(WindowEvent e) {
                 final Model model = mapView.getModel();
                 model.init(preferencesFacade);
-                App.moverThread.setModel(model);
+                App.moverThread.setMapView(mapView);
                 App.moverThread.start();
             }
         });
@@ -72,7 +70,7 @@ public class App {
     private static BoundingBox addLayers(MapView mapView) {
         Layers layers = mapView.getLayerManager().getLayers();
 
-        int tileSize = SHOW_RASTER_MAP ? 256 : 512;
+        int tileSize = 256;
 
         // Tile cache
         TileCache tileCache = AwtUtil.createTileCache(
@@ -93,7 +91,8 @@ public class App {
                 GRAPHIC_FACTORY, mapView.getModel().displayModel,
                 App.moverThread::getAircraftHeading,
                 App.moverThread::getAircraftTas,
-                App.moverThread::getTillerInput));
+                App.moverThread::getTillerInput,
+                App.moverThread::getAircraftPosition));
         return new BoundingBox(LatLongUtils.LATITUDE_MIN, LatLongUtils.LONGITUDE_MIN, LatLongUtils.LATITUDE_MAX, LatLongUtils.LONGITUDE_MAX);
     }
 }
