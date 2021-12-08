@@ -4,8 +4,6 @@
 package psxtaxi;
 
 import org.mapsforge.core.graphics.GraphicFactory;
-import org.mapsforge.core.model.BoundingBox;
-import org.mapsforge.core.util.LatLongUtils;
 import org.mapsforge.core.util.Parameters;
 import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
 import org.mapsforge.map.awt.util.AwtUtil;
@@ -26,39 +24,45 @@ import javax.swing.WindowConstants;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.prefs.Preferences;
 
 public class App {
     private static final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
 
     public static void main(String[] args) {
+        PsxProperties properties = loadProperties("psxtaxi.properties");
+        PsxConnector connector = new PsxConnector(properties.hostname, properties.port);
+        connector.connect();
         final MapView mapView = new MapView();
         final SimState state = new SimState();
-        PsxConnector connector = new PsxConnector("localhost", 10747);
-        connector.connect();
-        final EventProcessor eventProcessor =
-                new EventProcessor(connector,
-                        new Qs121Handler(mapView, state)::handle,
-                        new Qh426Handler(state)::handle);
 
         // Square frame buffer
         Parameters.SQUARE_FRAME_BUFFER = true;
 
         Layers layers = mapView.getLayerManager().getLayers();
-        TileDownloadLayer tileDownloadLayer = createMapLayer(mapView, OpenStreetMapMapnik.INSTANCE, 256);
+        TileDownloadLayer tileDownloadLayer = createMapLayer(mapView, OpenStreetMapMapnik.INSTANCE, properties.mapTileSize);
         layers.add(tileDownloadLayer);
-        layers.add(new AirplaneLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel, state, 60, true));
+        layers.add(new AirplaneLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel, state, properties.cutoffSpeed, properties.showSpeed));
 
         tileDownloadLayer.start();
 
         mapView.setZoomLevelMin(OpenStreetMapMapnik.INSTANCE.getZoomLevelMin());
         mapView.setZoomLevelMax(OpenStreetMapMapnik.INSTANCE.getZoomLevelMax());
 
+        final EventProcessor eventProcessor =
+                new EventProcessor(connector,
+                        new Qs121Handler(mapView, state)::handle,
+                        new Qh426Handler(state)::handle);
+
+        JFrame frame = createJFrame(mapView, properties.initialWindowWidth, properties.initialWindowHeight);
         final PreferencesFacade preferencesFacade = new JavaPreferences(Preferences.userNodeForPackage(App.class));
-
-        JFrame frame = createJFrame(mapView, 1024, 768);
-
         WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -102,5 +106,33 @@ public class App {
         mapView.getModel().displayModel.setFixedTileSize(tileSize);
         tileSource.setUserAgent("psxtaxi-mapsforge-awt");
         return new TileDownloadLayer(tileCache, mapView.getModel().mapViewPosition, tileSource, GRAPHIC_FACTORY);
+    }
+
+    private static PsxProperties loadProperties(String propertiesFileName) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(propertiesFileName);
+            Properties p = new Properties();
+            p.load(fileInputStream);
+            PsxProperties v = new PsxProperties();
+            setValue(p, "cutoffSpeed", m -> v.cutoffSpeed = m, Integer::parseInt);
+            setValue(p, "port", m -> v.port = m, Integer::parseInt);
+            setValue(p, "hostname", m -> v.hostname = m, String::new);
+            setValue(p, "initialWindowWidth", m -> v.initialWindowWidth = m, Integer::parseInt);
+            setValue(p, "initialWindowHeight", m -> v.initialWindowHeight = m, Integer::parseInt);
+            setValue(p, "mapTileSize", m -> v.mapTileSize = m, Integer::parseInt);
+            setValue(p, "showSpeed", m -> v.showSpeed = m, Boolean::parseBoolean);
+            return v;
+        } catch (FileNotFoundException e) {
+            return new PsxProperties();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static <T> void setValue(Properties p, String propertyName, Consumer<T> setter, Function<String, T> parser) {
+        String propertyValue = p.getProperty(propertyName);
+        if (propertyValue != null) {
+            setter.accept(parser.apply(propertyValue));
+        }
     }
 }
