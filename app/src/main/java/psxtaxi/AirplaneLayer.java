@@ -15,7 +15,6 @@ import org.mapsforge.map.model.DisplayModel;
 import java.util.function.Supplier;
 
 public class AirplaneLayer extends Layer {
-    private DisplayModel displayModel;
     private final Supplier<Double> aircraftHeadingSupplier;
     private final Supplier<Double> aircraftTasSupplier;
     private final Supplier<Double> tillerInputSupplier;
@@ -29,7 +28,6 @@ public class AirplaneLayer extends Layer {
                          Supplier<Double> tillerInputSupplier,
                          Supplier<LatLong> aircraftPositionSupplier) {
         super();
-        this.displayModel = displayModel;
         this.aircraftHeadingSupplier = aircraftHeadingSupplier;
         this.aircraftTasSupplier = aircraftTasSupplier;
         this.tillerInputSupplier = tillerInputSupplier;
@@ -39,7 +37,7 @@ public class AirplaneLayer extends Layer {
         this.paintBlack = createPaintFront(graphicFactory, displayModel, Color.BLACK);
     }
 
-    private static Paint createPaintFront(GraphicFactory graphicFactory, DisplayModel displayModel, Color color) {
+    private Paint createPaintFront(GraphicFactory graphicFactory, DisplayModel displayModel, Color color) {
         Paint paint = graphicFactory.createPaint();
         paint.setColor(color);
         paint.setTypeface(FontFamily.DEFAULT, FontStyle.BOLD);
