@@ -17,6 +17,9 @@ import org.mapsforge.map.layer.download.TileDownloadLayer;
 import org.mapsforge.map.layer.download.tilesource.OpenStreetMapMapnik;
 import org.mapsforge.map.model.Model;
 import org.mapsforge.map.model.common.PreferencesFacade;
+import psxtaxi.handler.Qh426Handler;
+import psxtaxi.handler.Qs121Handler;
+import psxtaxi.ui.AirplaneLayer;
 
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
@@ -29,27 +32,37 @@ import java.util.prefs.Preferences;
 public class App {
     private static final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
 
-    private static final MoverThread moverThread = new MoverThread();
-
     public static void main(String[] args) {
+        final MapView mapView = new MapView();
+        final SimState state = new SimState();
+        PsxConnector connector = new PsxConnector("localhost", 10747);
+        connector.connect();
+        final EventProcessor eventProcessor =
+                new EventProcessor(connector,
+                        new Qs121Handler(mapView, state)::handle,
+                        new Qh426Handler(state)::handle);
+
         // Square frame buffer
         Parameters.SQUARE_FRAME_BUFFER = true;
 
-        final MapView mapView = new MapView();
-        addLayers(mapView);
+        Layers layers = mapView.getLayerManager().getLayers();
+        TileDownloadLayer tileDownloadLayer = createMapLayer(mapView, OpenStreetMapMapnik.INSTANCE, 256);
+        layers.add(tileDownloadLayer);
+        layers.add(new AirplaneLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel, state, 60, true));
+
+        tileDownloadLayer.start();
+
+        mapView.setZoomLevelMin(OpenStreetMapMapnik.INSTANCE.getZoomLevelMin());
+        mapView.setZoomLevelMax(OpenStreetMapMapnik.INSTANCE.getZoomLevelMax());
 
         final PreferencesFacade preferencesFacade = new JavaPreferences(Preferences.userNodeForPackage(App.class));
 
-        final JFrame frame = new JFrame();
-        frame.setTitle("PSX Taxi");
-        frame.add(mapView);
-        frame.pack();
-        frame.setSize(1024, 768);
-        frame.setLocationRelativeTo(null);
-        frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        frame.addWindowListener(new WindowAdapter() {
+        JFrame frame = createJFrame(mapView, 1024, 768);
+
+        WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
+                eventProcessor.exit();
                 mapView.getModel().save(preferencesFacade);
                 mapView.destroyAll();
                 AwtGraphicFactory.clearResourceMemoryCache();
@@ -60,18 +73,25 @@ public class App {
             public void windowOpened(WindowEvent e) {
                 final Model model = mapView.getModel();
                 model.init(preferencesFacade);
-                App.moverThread.setMapView(mapView);
-                App.moverThread.start();
+                eventProcessor.start();
             }
-        });
-        frame.setVisible(true);
+        };
+        frame.addWindowListener(windowAdapter);
     }
 
-    private static BoundingBox addLayers(MapView mapView) {
-        Layers layers = mapView.getLayerManager().getLayers();
+    private static JFrame createJFrame(MapView mapView, int windowWidth, int windowHeight) {
+        final JFrame frame = new JFrame();
+        frame.setTitle("PSX Taxi");
+        frame.add(mapView);
+        frame.pack();
+        frame.setSize(windowWidth, windowHeight);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        frame.setVisible(true);
+        return frame;
+    }
 
-        int tileSize = 256;
-
+    private static TileDownloadLayer createMapLayer(MapView mapView, OpenStreetMapMapnik tileSource, int tileSize) {
         // Tile cache
         TileCache tileCache = AwtUtil.createTileCache(
                 tileSize,
@@ -80,19 +100,7 @@ public class App {
                 new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString()));
 
         mapView.getModel().displayModel.setFixedTileSize(tileSize);
-        OpenStreetMapMapnik tileSource = OpenStreetMapMapnik.INSTANCE;
         tileSource.setUserAgent("psxtaxi-mapsforge-awt");
-        TileDownloadLayer tileDownloadLayer = new TileDownloadLayer(tileCache, mapView.getModel().mapViewPosition, tileSource, GRAPHIC_FACTORY);
-        layers.add(tileDownloadLayer);
-        tileDownloadLayer.start();
-        mapView.setZoomLevelMin(tileSource.getZoomLevelMin());
-        mapView.setZoomLevelMax(tileSource.getZoomLevelMax());
-        layers.add(new AirplaneLayer(
-                GRAPHIC_FACTORY, mapView.getModel().displayModel,
-                App.moverThread::getAircraftHeading,
-                App.moverThread::getAircraftTas,
-                App.moverThread::getTillerInput,
-                App.moverThread::getAircraftPosition));
-        return new BoundingBox(LatLongUtils.LATITUDE_MIN, LatLongUtils.LONGITUDE_MIN, LatLongUtils.LATITUDE_MAX, LatLongUtils.LONGITUDE_MAX);
+        return new TileDownloadLayer(tileCache, mapView.getModel().mapViewPosition, tileSource, GRAPHIC_FACTORY);
     }
 }
