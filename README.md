@@ -29,7 +29,7 @@ Here's a screenshot of taxing. The red circle indicates aircraft's position, the
 circle  indicates current heading, while black tip indicates tiller input. The text next to the position circle
 indicates speed. For technical reasons, it's IAS, not ground speed.
 
-<img alt="snapshot" src="https://github.com/jgracin/psxtaxi/blob/master/docs/screenshot.jpg" width="320">
+<img alt="snapshot" src="https://github.com/jgracin/psxtaxi/blob/master/docs/screenshot.jpg" width="800">
 
 Known bug: Don't use Cmd+Q to quit the application on MacOS because that event is not properly handled by 
 the application and might cause the connection to the main server to remain open.
