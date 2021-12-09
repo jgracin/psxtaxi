@@ -37,9 +37,9 @@ the application and might cause the connection to the main server to remain open
 # Configuration
 
 If the directory where you run the application (i.e. where you started that java -jar command above) contains
-a file called psxtaxi.properties, it will be read and used for configuring various application parameters.
+a file called `psxtaxi.properties`, it will be read and used for configuring various application parameters.
 
-Here's an example of a psxtaxi.properties file content:
+Here's an example of a `psxtaxi.properties` file content:
 ```
 showSpeed=true
 initialWindowWidth=1024
@@ -53,7 +53,7 @@ port=10747
 Parameter `showSpeed` can be true or false and indicates where aircraft's speed should be displayed.
 Parameters `initialWindowWidth` and `initialWindowHeight` specify the size (in pixels) of the window when the application opens. 
 Parameter `cutoffSpeed` is the speed above which the application stops rendering the map and aircraft because it assumes that you're not taxing any more.
-Parameter `mapTileSize` is specific to Mapsforge. Try values such as 64, 128, 256, and 512 and see what works for you best.
+Parameter `mapTileSize` is specific to Mapsforge. Try values such as 64, 128, 256, and 512 and see what works best for you.
 Parameter `hostname` and `port` indicate PSX Main Server network address.
 
 
