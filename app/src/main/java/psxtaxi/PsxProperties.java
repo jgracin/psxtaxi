@@ -8,4 +8,5 @@ public class PsxProperties {
     public boolean showSpeed = true;
     public int initialWindowWidth = 1024;
     public int initialWindowHeight = 768;
+    public boolean alwaysOnTop = true;
 }

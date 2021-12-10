@@ -61,7 +61,10 @@ public class App {
                         new Qs121Handler(mapView, state)::handle,
                         new Qh426Handler(state)::handle);
 
-        JFrame frame = createJFrame(mapView, properties.initialWindowWidth, properties.initialWindowHeight);
+        JFrame frame = createJFrame(mapView,
+                properties.initialWindowWidth,
+                properties.initialWindowHeight,
+                properties.alwaysOnTop);
         final PreferencesFacade preferencesFacade = new JavaPreferences(Preferences.userNodeForPackage(App.class));
         WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
@@ -83,7 +86,7 @@ public class App {
         frame.addWindowListener(windowAdapter);
     }
 
-    private static JFrame createJFrame(MapView mapView, int windowWidth, int windowHeight) {
+    private static JFrame createJFrame(MapView mapView, int windowWidth, int windowHeight, boolean alwaysOnTop) {
         final JFrame frame = new JFrame();
         frame.setTitle("PSX Taxi");
         frame.add(mapView);
@@ -91,6 +94,7 @@ public class App {
         frame.setSize(windowWidth, windowHeight);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        frame.setAlwaysOnTop(alwaysOnTop);
         frame.setVisible(true);
         return frame;
     }
@@ -121,6 +125,7 @@ public class App {
             setValue(p, "initialWindowHeight", m -> v.initialWindowHeight = m, Integer::parseInt);
             setValue(p, "mapTileSize", m -> v.mapTileSize = m, Integer::parseInt);
             setValue(p, "showSpeed", m -> v.showSpeed = m, Boolean::parseBoolean);
+            setValue(p, "alwaysOnTop", m -> v.alwaysOnTop = m, Boolean::parseBoolean);
             return v;
         } catch (FileNotFoundException e) {
             return new PsxProperties();

@@ -46,6 +46,7 @@ initialWindowWidth=1024
 initialWindowHeight=768
 cutoffSpeed=60
 mapTileSize=256
+alwaysOnTop=true
 hostname=localhost
 port=10747
 ```
@@ -54,8 +55,13 @@ Parameter `showSpeed` can be true or false and indicates where aircraft's speed 
 Parameters `initialWindowWidth` and `initialWindowHeight` specify the size (in pixels) of the window when the application opens. 
 Parameter `cutoffSpeed` is the speed above which the application stops rendering the map and aircraft because it assumes that you're not taxing any more.
 Parameter `mapTileSize` is specific to Mapsforge. Try values such as 64, 128, 256, and 512 and see what works best for you.
+Parameter `alwaysOnTop`, if true, makes the application window remain on top of other windows at all times.
 Parameter `hostname` and `port` indicate PSX Main Server network address.
 
+# Changelog
+
+* 2021-12-10
+  - Add `alwaysOnTop` property that makes the application window stay visible above other windors. Made this the default.
 
 # License
 
